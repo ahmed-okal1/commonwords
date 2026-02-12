@@ -1,2 +1,5 @@
 flet
-openpyxl
+openpyxl33
+gtts
+tempfile
+sqlite3

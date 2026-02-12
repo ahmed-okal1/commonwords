@@ -3,8 +3,17 @@ import os
 
 DB_NAME = "vocabulary.db"
 
+def get_db_path():
+    # Use standard APPDATA location for Windows or generic home for others
+    app_data = os.getenv('APPDATA') if os.name == 'nt' else os.path.expanduser('~')
+    app_dir = os.path.join(app_data, 'EnglishMasteryApp')
+    if not os.path.exists(app_dir):
+        os.makedirs(app_dir)
+    return os.path.join(app_dir, DB_NAME)
+
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 

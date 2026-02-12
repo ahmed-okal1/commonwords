@@ -1,9 +1,9 @@
 import sqlite3
-from database import init_db, DB_NAME
+from database import init_db, get_db_connection
 
 def seed_data():
     init_db()
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_db_connection()
     c = conn.cursor()
     
     # Check if words exist

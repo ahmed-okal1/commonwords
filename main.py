@@ -5,6 +5,7 @@ from views.learning_view import LearningView
 from views.words_view import WordsView
 from views.difficult_words_view import DifficultWordsView
 from database import init_db
+from seed_data import seed_data
 
 def main(page: ft.Page):
     page.title = "English Mastery"
@@ -14,6 +15,7 @@ def main(page: ft.Page):
     page.padding = 0
     
     init_db()
+    seed_data()
 
     def route_change(route):
         page.views.clear()

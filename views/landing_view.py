@@ -1,23 +1,61 @@
 import flet as ft
-from database import get_user, create_user
+import os
+import sys
+import traceback
+import datetime
 
 def LandingView(page: ft.Page):
-    
+    log_file = os.path.join(os.path.expanduser("~"), "english_mastery_debug.log")
+    def log(msg):
+        try:
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] [LANDING] {msg}\n")
+        except: pass
+
     def login(e):
-        if not username_field.value:
-            username_field.error_text = "Please enter a username"
+        try:
+            val = username_field.value
+            if not val:
+                username_field.error_text = "Please enter a username"
+                username_field.update()
+                return
+            
+            log(f"Login attempt for: {val}")
+            
+            from database import get_user, create_user, set_last_user
+            
+            log("Fetching user from DB...")
+            user = get_user(val)
+            if not user:
+                log("User not found, creating...")
+                user = create_user(val)
+                log(f"Created user ID: {user['id'] if user else 'NONE'}")
+            else:
+                log(f"Found user ID: {user['id']}")
+            
+            if not user:
+                log("CRITICAL: User object is None after creation attempt")
+                username_field.error_text = "DB Error: Could not create user"
+                username_field.update()
+                return
+
+            log("Setting session session variables...")
+            page.session.set("user_id", user['id'])
+            page.session.set("username", user['username'])
+            
+            log("Saving persistence file...")
+            set_last_user(user['username'])
+            
+            log("Navigating to /dashboard...")
+            page.go("/dashboard")
+            log("Navigation command sent.")
+            
+        except Exception as ex:
+            err = f"LOGIN EVENT CRASH: {str(ex)}\n{traceback.format_exc()}"
+            log(err)
+            username_field.error_text = f"Error: {str(ex)[:30]}..."
             username_field.update()
-            return
-        
-        user = get_user(username_field.value)
-        if not user:
-            user = create_user(username_field.value)
-        
-        page.session.set("user_id", user['id'])
-        page.session.set("username", user['username'])
-        from database import set_last_user
-        set_last_user(user['username'])
-        page.go("/dashboard")
 
     username_field = ft.TextField(
         label="Username",

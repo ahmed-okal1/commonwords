@@ -115,7 +115,8 @@ def main(page: ft.Page):
         
         if last_user:
             log(f"Auto-login detected for: {last_user}")
-            page.session.set("username", last_user)
+            from session_utils import set_session
+            set_session(page, "username", last_user)
             page.go("/dashboard")
             log("Dispatched to dashboard.")
         else:

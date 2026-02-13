@@ -2,79 +2,94 @@ import flet as ft
 import os
 import sys
 import traceback
+import datetime
 
 def main(page: ft.Page):
-    # --- STEP 1: RESILIENT UI SETUP ---
-    page.title = "English Mastery - Startup"
-    page.theme_mode = ft.ThemeMode.DARK
-    page.window_width = 400
-    page.window_height = 800
-    page.padding = 20
-    page.scroll = ft.ScrollMode.ALWAYS
-
-    # Use a simple list to show progress
-    status_list = ft.Column(spacing=10)
-    page.add(
-        ft.Text("Diagnostic Startup", size=24, weight="bold"),
-        status_list
-    )
-    
-    def report(msg, color="white"):
-        status_list.controls.append(ft.Text(msg, color=color, size=12))
-        page.update()
-
-    report(f"Python Version: {sys.version}")
-    report(f"Executable: {sys.executable}")
-    report(f"CWD: {os.getcwd()}")
-
-    # --- STEP 2: LOGGING SETUP ---
+    # Setup log file in user's home directory (always writable)
     log_file = os.path.join(os.path.expanduser("~"), "english_mastery_debug.log")
-    def log_to_file(msg):
+    
+    def log(msg):
         try:
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
             with open(log_file, "a", encoding="utf-8") as f:
-                f.write(f"{msg}\n")
+                f.write(f"[{timestamp}] {msg}\n")
         except: pass
 
-    log_to_file("\n--- NEW STARTUP ---")
+    log("\n--- STARTUP INITIALIZED ---")
 
-    # --- STEP 3: DATABASE & VIEWS ---
+    # Resilient UI Setup
+    page.title = "Mastery Boot"
+    page.theme_mode = ft.ThemeMode.DARK
+    page.padding = 30
+    
+    diag_text = ft.Text("Booting...", size=14, color="white70")
+    page.add(
+        ft.Text("English Mastery", size=24, weight="bold"),
+        ft.Divider(),
+        diag_text,
+        ft.ProgressBar(width=300, color="blue")
+    )
+    
+    def say(msg):
+        log(f"STATUS: {msg}")
+        diag_text.value = msg
+        page.update()
+
     try:
-        report("Loading database logic...")
+        log(f"Platform: {sys.platform} | Version: {sys.version.split()[0]}")
+        log(f"Executable: {sys.executable}")
+        
+        # Step 1: Database Logic
+        say("Loading database logic...")
         import database
+        log("Database module imported.")
+        
+        say("Detecting database path...")
         db_path = database.get_db_path()
-        report(f"Target DB Path: {db_path}", "blue")
+        log(f"Database path determined: {db_path}")
         
-        report("Initializing database...")
+        say("Initializing database file...")
         database.init_db()
+        log("Database initialized (tables created).")
         
-        report("Seeding data...")
+        # Step 2: Seeding
+        say("Verifying vocabulary data...")
         from seed_data import seed_data
+        log("Seed data module imported.")
         seed_data()
+        log("Seed data verification/insertion complete.")
         
-        report("Loading views...")
+        # Step 3: Views
+        say("Loading application views...")
         from views.landing_view import LandingView
         from views.dashboard_view import DashboardView
         from views.learning_view import LearningView
         from views.words_view import WordsView
         from views.difficult_words_view import DifficultWordsView
-        report("Logic loaded successfully.", "green")
-
+        log("All views imported successfully.")
+        
+        say("Preparing to launch UI...")
         import time
-        time.sleep(1) # Let user see the green "Success" for a bit
+        time.sleep(0.5)
+        
+        # Handoff to main App UI
         page.controls.clear()
         page.padding = 0
-        page.scroll = None
-        page.title = "English Mastery"
-        
+        page.update()
+        log("Diagnostic UI cleared. Launching router.")
+
     except Exception as e:
-        err = f"CRITICAL ERROR: {str(e)}\n\n{traceback.format_exc()}"
-        report(err, "red")
-        log_to_file(err)
+        error_msg = f"BOOT CRASH: {str(e)}\n\n{traceback.format_exc()}"
+        log(error_msg)
+        page.add(ft.Text("Critical Error during boot:", color="red", weight="bold"))
+        page.add(ft.Text(error_msg, size=10, selectable=True))
+        page.update()
         return
 
-    # --- STEP 4: ROUTING ---
+    # Routing Logic
     def route_change(route):
         try:
+            log(f"Route change to: {page.route}")
             page.views.clear()
             if page.route == "/":
                 page.views.append(LandingView(page))
@@ -87,21 +102,24 @@ def main(page: ft.Page):
             elif page.route == "/difficult":
                 page.views.append(DifficultWordsView(page))
             page.update()
-        except Exception as e:
-            report(f"Routing Error: {e}", "red")
+        except Exception as ex:
+            log(f"ROUTE ERROR: {ex}")
 
     page.on_route_change = route_change
     page.on_view_pop = lambda _: [page.views.pop(), page.go(page.views[-1].route)]
     
-    # Start Navigation
+    # Final step: Choose starting page
     try:
         last_username = page.client_storage.get("last_username")
         if last_username:
+            log(f"Persistent login found for: {last_username}")
             page.session.set("username", last_username)
             page.go("/dashboard")
         else:
+            log("No persistent login. Sending to landing page.")
             page.go("/")
-    except:
+    except Exception as storage_ex:
+        log(f"Storage failed: {storage_ex}")
         page.go("/")
 
 if __name__ == "__main__":

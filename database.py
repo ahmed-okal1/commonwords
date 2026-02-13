@@ -6,30 +6,54 @@ DB_NAME = "vocabulary.db"
 import sys
 
 def get_db_path():
-    # Detect Android
-    # Flet on Android usually sets these or we can check platform
-    is_android = os.environ.get("ANDROID_ARGUMENT") or os.environ.get("ANDROID_BOOTLOGO") or os.path.exists("/system/bin/app_process")
-    
-    if is_android:
-        # On Android, use the app's internal data directory
-        base_path = os.environ.get("FILES_DIR", os.path.expanduser("~"))
-    elif getattr(sys, 'frozen', False):
-        # Running as compiled executable (Windows/macOS/Linux)
-        base_path = os.path.dirname(sys.executable)
+    # Use a safe fallback for the log
+    log_file = os.path.join(os.path.expanduser("~"), "english_mastery_debug.log")
+    def debug_log(msg):
+        try:
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"[DB_PATH_LOG] {msg}\n")
+        except: pass
+
+    try:
+        # Detect Android
+        is_android = os.environ.get("ANDROID_ARGUMENT") or os.environ.get("ANDROID_BOOTLOGO")
         
-        # Check if we can write to the program folder
-        # If installed in Program Files, it will be read-only!
-        if not os.access(base_path, os.W_OK):
-            # Fallback to APPDATA if program folder is read-only
-            app_data = os.getenv('APPDATA') if os.name == 'nt' else os.path.expanduser('~')
-            base_path = os.path.join(app_data, 'EnglishMasteryApp')
-            if not os.path.exists(base_path):
-                os.makedirs(base_path)
-    else:
-        # Running from source
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        
-    return os.path.join(base_path, DB_NAME)
+        if is_android:
+            debug_log("Android detected")
+            base_path = os.environ.get("FILES_DIR", os.path.expanduser("~"))
+        elif getattr(sys, 'frozen', False):
+            debug_log("Frozen (executable) detected")
+            base_path = os.path.dirname(sys.executable)
+            
+            # Ultra-safe check for write permissions
+            test_file = os.path.join(base_path, ".write_test")
+            can_write = False
+            try:
+                with open(test_file, "w") as f: f.write("test")
+                os.remove(test_file)
+                can_write = True
+            except:
+                debug_log("Program folder is READ-ONLY")
+
+            if not can_write:
+                app_data = os.getenv('APPDATA')
+                if not app_data:
+                    app_data = os.path.expanduser('~')
+                base_path = os.path.join(app_data, 'EnglishMasteryApp')
+                if not os.path.exists(base_path):
+                    os.makedirs(base_path)
+                debug_log(f"Using APPDATA fallback: {base_path}")
+        else:
+            debug_log("Source mode detected")
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            
+        final_path = os.path.join(base_path, DB_NAME)
+        debug_log(f"Final Path: {final_path}")
+        return final_path
+    except Exception as e:
+        debug_log(f"CRITICAL ERROR in get_db_path: {str(e)}")
+        # Ultimate fallback
+        return os.path.join(os.path.expanduser("~"), DB_NAME)
 
 def get_db_connection():
     db_path = get_db_path()

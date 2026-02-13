@@ -101,82 +101,94 @@ def DashboardView(page: ft.Page):
     )
 
 
-    def import_csv_dialog(e):
-        def pick_files_result(e: ft.FilePickerResultEvent):
-            if e.files:
-                file_path = e.files[0].path
-                
-                def process_import(target_level):
-                    try:
-                        from openpyxl import load_workbook
-                        from database import get_db_connection
-                        
-                        conn = get_db_connection()
-                        cursor = conn.cursor()
-                        
-                        wb = load_workbook(file_path, read_only=True)
-                        ws = wb.active
-                        
-                        count = 0
-                        for row in ws.iter_rows(values_only=True):
-                            try:
-                                # Convert to strings, skip None
-                                cells = [str(c).strip() if c is not None else "" for c in row]
+    def pick_files_result(e: ft.FilePickerResultEvent):
+        if e.files:
+            file_path = e.files[0].path
+            
+            def process_import(target_level, level_dlg):
+                try:
+                    from openpyxl import load_workbook
+                    from database import get_db_connection
+                    
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    
+                    wb = load_workbook(file_path, read_only=True)
+                    ws = wb.active
+                    
+                    count = 0
+                    for row in ws.iter_rows(values_only=True):
+                        try:
+                            # Convert to strings, skip None
+                            cells = [str(c).strip() if c is not None else "" for c in row]
+                            
+                            # Skip header heuristic
+                            if cells and ("english" in cells[0].lower() or "level" in cells[0].lower() or "word" in cells[0].lower()):
+                                continue
                                 
-                                # Skip header heuristic
-                                if cells and ("english" in cells[0].lower() or "level" in cells[0].lower() or "word" in cells[0].lower()):
-                                    continue
-                                    
-                                en, ar = "", ""
-                                if len(cells) == 2:
-                                    en, ar = cells[0], cells[1]
-                                elif len(cells) >= 3:
-                                    en, ar = cells[1], cells[2]
-                                    
-                                if en and ar:
-                                    cursor.execute('INSERT INTO words (level, english_word, arabic_word) VALUES (?, ?, ?)', (target_level, en, ar))
-                                    count += 1
-                            except Exception as row_ex:
-                                print(f"Skipping row {row}: {row_ex}")
-                                    
-                        wb.close()
-                        conn.commit()
-                        conn.close()
-                        page.close(level_dialog)
-                        page.snack_bar = ft.SnackBar(ft.Text(f"Successfully imported {count} words to Level {target_level}!"))
-                        page.snack_bar.open = True
-                        page.update()
-                        
-                    except Exception as ex:
-                        page.snack_bar = ft.SnackBar(ft.Text(f"Error importing: {ex}"))
-                        page.snack_bar.open = True
-                        page.update()
+                            en, ar = "", ""
+                            if len(cells) == 2:
+                                en, ar = cells[0], cells[1]
+                            elif len(cells) >= 3:
+                                en, ar = cells[1], cells[2]
+                                
+                            if en and ar:
+                                cursor.execute('INSERT INTO words (level, english_word, arabic_word) VALUES (?, ?, ?)', (target_level, en, ar))
+                                count += 1
+                        except Exception as row_ex:
+                            log(f"Skipping row {row}: {row_ex}")
+                                
+                    wb.close()
+                    conn.commit()
+                    conn.close()
+                    
+                    page.close(level_dlg)
+                    page.snack_bar = ft.SnackBar(ft.Text(f"Successfully imported {count} words to Level {target_level}!"))
+                    page.snack_bar.open = True
+                    page.update()
+                    
+                except Exception as ex:
+                    page.snack_bar = ft.SnackBar(ft.Text(f"Error importing: {ex}"))
+                    page.snack_bar.open = True
+                    page.update()
 
-                # Level selection dialog
-                def select_level(e, lvl):
-                    process_import(lvl)
+            # Level selection dialog
+            def select_level(e, lvl, level_dlg):
+                process_import(lvl, level_dlg)
 
-                level_buttons = [
-                    ft.ElevatedButton(f"Level {i}", on_click=lambda e, i=i: select_level(e, i)) 
-                    for i in range(1, 7)
-                ]
+            level_buttons = [
+                ft.ElevatedButton(f"Level {i}", on_click=lambda e, i=i: select_level(e, i, level_dialog)) 
+                for i in range(1, 7)
+            ]
 
-                level_dialog = ft.AlertDialog(
-                    title=ft.Text("Select Target Level"),
-                    content=ft.Column([ft.Text("Which level are these words for?")], height=50),
-                    actions=level_buttons,
-                    actions_alignment=ft.MainAxisAlignment.CENTER,
-                    modal=True
-                )
-                
-                page.open(level_dialog)
-                page.update()
+            level_dialog = ft.AlertDialog(
+                title=ft.Text("Select Target Level"),
+                content=ft.Column([ft.Text("Which level are these words for?")], height=50),
+                actions=level_buttons,
+                actions_alignment=ft.MainAxisAlignment.CENTER,
+                modal=True
+            )
+            
+            page.open(level_dialog)
+            page.update()
 
-        file_picker.on_result = pick_files_result
+    def import_csv_dialog(e):
         file_picker.pick_files(allow_multiple=False, allowed_extensions=["xlsx"])
 
-    file_picker = ft.FilePicker()
-    page.overlay.append(file_picker)
+    file_picker = ft.FilePicker(on_result=pick_files_result)
+    
+    # Check if a FilePicker is already in page.overlay to avoid "Unknown control" or duplicates
+    existing_fp = None
+    for c in page.overlay:
+        if isinstance(c, ft.FilePicker):
+            existing_fp = c
+            break
+            
+    if not existing_fp:
+        page.overlay.append(file_picker)
+    else:
+        file_picker = existing_fp
+        file_picker.on_result = pick_files_result
 
     return ft.View(
         route="/dashboard",

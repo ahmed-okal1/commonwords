@@ -196,8 +196,8 @@ def DashboardView(page: ft.Page):
                                         icon_color="white",
                                         tooltip="Settings",
                                         items=[
-                                            ft.PopupMenuItem(text="Import Words (XLSX)", icon=ft.Icons.UPLOAD_FILE, on_click=import_csv_dialog),
-                                            ft.PopupMenuItem(text="Manage Words", icon=ft.Icons.LIST_ALT, on_click=lambda e: page.go("/words")),
+                                            ft.PopupMenuItem(content=ft.Text("Import Words (XLSX)"), icon=ft.Icons.UPLOAD_FILE, on_click=import_csv_dialog),
+                                            ft.PopupMenuItem(content=ft.Text("Manage Words"), icon=ft.Icons.LIST_ALT, on_click=lambda e: page.go("/words")),
                                         ]
                                     ),
                                     ft.IconButton(ft.Icons.LOGOUT, icon_color="redAccent", on_click=lambda e: [(__import__('database').clear_last_user()), (__import__('session_utils').clear_session()), page.go("/")]),

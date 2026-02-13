@@ -110,18 +110,23 @@ def main(page: ft.Page):
     
     # Final step: Choose starting page
     try:
-        # Client storage is causing issues in some environments.
-        # Fallback to direct routing.
-        page.views.clear()
-        page.views.append(LandingView(page))
-        page.update()
-        log("Initial view loaded (forced).")
+        from database import get_last_user
+        last_user = get_last_user()
         
-        # We can try to restore route logic later, but let's confirm simple view works first.
-        # page.go("/") might not trigger if already on "/"
+        if last_user:
+            log(f"Auto-login detected for: {last_user}")
+            page.session.set("username", last_user)
+            page.go("/dashboard")
+            log("Dispatched to dashboard.")
+        else:
+            log("No auto-login found. Dispatching to landing.")
+            page.views.clear()
+            page.views.append(LandingView(page))
+            page.update()
+            log("Initial view (Landing) loaded.")
         
     except Exception as e:
-        log(f"View load failed: {e}")
+        log(f"Auto-login or View load failed: {e}")
         page.views.clear()
         page.add(ft.Text(f"Failed to load UI: {e}", color="red"))
         page.update()

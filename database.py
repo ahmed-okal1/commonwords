@@ -218,3 +218,29 @@ def remove_from_difficult(username, word_id):
     conn.execute('DELETE FROM word_errors WHERE username = ? AND word_id = ?', (username, word_id))
     conn.commit()
     conn.close()
+
+def get_last_user():
+    """Load last username from file for auto-login."""
+    try:
+        path = os.path.join(os.path.dirname(get_db_path()), "last_user.txt")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+    except: pass
+    return None
+
+def set_last_user(username):
+    """Save last username for auto-login."""
+    try:
+        path = os.path.join(os.path.dirname(get_db_path()), "last_user.txt")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(username)
+    except: pass
+
+def clear_last_user():
+    """Clear saved username on logout."""
+    try:
+        path = os.path.join(os.path.dirname(get_db_path()), "last_user.txt")
+        if os.path.exists(path):
+            os.remove(path)
+    except: pass

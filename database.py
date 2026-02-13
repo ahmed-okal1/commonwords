@@ -3,13 +3,18 @@ import os
 
 DB_NAME = "vocabulary.db"
 
+import sys
+
 def get_db_path():
-    # Use standard APPDATA location for Windows or generic home for others
-    app_data = os.getenv('APPDATA') if os.name == 'nt' else os.path.expanduser('~')
-    app_dir = os.path.join(app_data, 'EnglishMasteryApp')
-    if not os.path.exists(app_dir):
-        os.makedirs(app_dir)
-    return os.path.join(app_dir, DB_NAME)
+    # User requested database inside program folder
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Running from source
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        
+    return os.path.join(base_path, DB_NAME)
 
 def get_db_connection():
     db_path = get_db_path()

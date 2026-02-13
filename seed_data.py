@@ -9,7 +9,11 @@ def seed_data():
     # Check if words exist
     count = c.execute('SELECT count(*) FROM words').fetchone()[0]
     if count > 0:
-        print("Database already populated.")
+        # Avoid print in frozen app if no console
+        try:
+             print("Database already populated.")
+        except:
+             pass
         conn.close()
         return
 
@@ -54,14 +58,21 @@ def seed_data():
 
     all_levels = [level_1, level_2, level_3, level_4, level_5, level_6]
 
-    print("Seeding data...")
+    try:
+        print("Seeding data...")
+    except:
+        pass
+        
     for idx, words in enumerate(all_levels):
         level_num = idx + 1
         for en, ar in words:
             c.execute('INSERT INTO words (level, english_word, arabic_word) VALUES (?, ?, ?)', (level_num, en, ar))
     
     conn.commit()
-    print(f"Inserted {60} words across 6 levels.")
+    try:
+        print(f"Inserted {60} words across 6 levels.")
+    except:
+        pass
     conn.close()
 
 if __name__ == "__main__":

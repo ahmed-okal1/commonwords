@@ -6,10 +6,25 @@ DB_NAME = "vocabulary.db"
 import sys
 
 def get_db_path():
-    # User requested database inside program folder
-    if getattr(sys, 'frozen', False):
-        # Running as compiled executable
+    # Detect Android
+    # Flet on Android usually sets these or we can check platform
+    is_android = os.environ.get("ANDROID_ARGUMENT") or os.environ.get("ANDROID_BOOTLOGO") or os.path.exists("/system/bin/app_process")
+    
+    if is_android:
+        # On Android, use the app's internal data directory
+        base_path = os.environ.get("FILES_DIR", os.path.expanduser("~"))
+    elif getattr(sys, 'frozen', False):
+        # Running as compiled executable (Windows/macOS/Linux)
         base_path = os.path.dirname(sys.executable)
+        
+        # Check if we can write to the program folder
+        # If installed in Program Files, it will be read-only!
+        if not os.access(base_path, os.W_OK):
+            # Fallback to APPDATA if program folder is read-only
+            app_data = os.getenv('APPDATA') if os.name == 'nt' else os.path.expanduser('~')
+            base_path = os.path.join(app_data, 'EnglishMasteryApp')
+            if not os.path.exists(base_path):
+                os.makedirs(base_path)
     else:
         # Running from source
         base_path = os.path.dirname(os.path.abspath(__file__))

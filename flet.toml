@@ -1,0 +1,14 @@
+[app]
+name = "English Mastery"
+package_name = "com.user.englishmastery"
+version = "1.0.0"
+build_number = 1
+main_module = "main"
+
+[android]
+# Android specific configuration
+permissions = ["INTERNET"]
+
+[packaging]
+include = ["*"]
+exclude = ["build", ".github", ".git", ".venv", "__pycache__"]

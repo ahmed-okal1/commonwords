@@ -110,17 +110,21 @@ def main(page: ft.Page):
     
     # Final step: Choose starting page
     try:
-        last_username = page.client_storage.get("last_username")
-        if last_username:
-            log(f"Persistent login found for: {last_username}")
-            page.session.set("username", last_username)
-            page.go("/dashboard")
-        else:
-            log("No persistent login. Sending to landing page.")
-            page.go("/")
-    except Exception as storage_ex:
-        log(f"Storage failed: {storage_ex}")
-        page.go("/")
+        # Client storage is causing issues in some environments.
+        # Fallback to direct routing.
+        page.views.clear()
+        page.views.append(LandingView(page))
+        page.update()
+        log("Initial view loaded (forced).")
+        
+        # We can try to restore route logic later, but let's confirm simple view works first.
+        # page.go("/") might not trigger if already on "/"
+        
+    except Exception as e:
+        log(f"View load failed: {e}")
+        page.views.clear()
+        page.add(ft.Text(f"Failed to load UI: {e}", color="red"))
+        page.update()
 
 if __name__ == "__main__":
     ft.app(target=main)

@@ -200,7 +200,7 @@ def DashboardView(page: ft.Page):
                                             ft.PopupMenuItem(text="Manage Words", icon=ft.Icons.LIST_ALT, on_click=lambda e: page.go("/words")),
                                         ]
                                     ),
-                                    ft.IconButton(ft.Icons.LOGOUT, icon_color="redAccent", on_click=lambda e: [(__import__('database').clear_last_user()), page.go("/")]),
+                                    ft.IconButton(ft.Icons.LOGOUT, icon_color="redAccent", on_click=lambda e: [(__import__('database').clear_last_user()), (__import__('session_utils').clear_session()), page.go("/")]),
                                 ])
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN

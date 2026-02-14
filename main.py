@@ -4,6 +4,10 @@ import sys
 import traceback
 import datetime
 
+# Dummy instances to ensure Flet includes these plugins in the build
+_ = ft.Audio()
+_ = ft.FilePicker()
+
 def main(page: ft.Page):
     # Setup log file in user's home directory (always writable)
     log_file = os.path.join(os.path.expanduser("~"), "english_mastery_debug.log")

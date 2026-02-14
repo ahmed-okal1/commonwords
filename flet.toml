@@ -10,5 +10,6 @@ main_module = "main"
 permissions = ["INTERNET"]
 
 [packaging]
+include_packages = ["flet_audio", "flet_file_picker"]
 include = ["*"]
 exclude = ["build", ".github", ".git", ".venv", "__pycache__"]

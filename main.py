@@ -3,15 +3,30 @@ import os
 import sys
 import traceback
 import datetime
+import time
 
-# Dummy instances to ensure Flet includes these plugins in the build
-_ = ft.Audio()
-_ = ft.FilePicker()
+# Explicit imports to help Flet build process discovery
+from flet import Audio, FilePicker, View, Page
 
-def main(page: ft.Page):
+# Import views at the top level so static analyzer sees them
+from views.landing_view import LandingView
+from views.dashboard_view import DashboardView
+from views.learning_view import LearningView
+from views.words_view import WordsView
+from views.difficult_words_view import DifficultWordsView
+import database
+from seed_data import seed_data
+from session_utils import set_session, get_session
+from database import get_last_user
+
+def main(page: Page):
     # Setup log file in user's home directory (always writable)
     log_file = os.path.join(os.path.expanduser("~"), "english_mastery_debug.log")
     
+    # Pre-add dummy controls to overlay to ensure plugins are included in the build
+    page.overlay.append(Audio(src="dummy.mp3"))
+    page.overlay.append(FilePicker())
+
     def log(msg):
         try:
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
@@ -44,36 +59,19 @@ def main(page: ft.Page):
         log(f"Executable: {sys.executable}")
         
         # Step 1: Database Logic
-        say("Loading database logic...")
-        import database
-        log("Database module imported.")
-        
-        say("Detecting database path...")
+        say("Loading database...")
         db_path = database.get_db_path()
-        log(f"Database path determined: {db_path}")
-        
-        say("Initializing database file...")
+        log(f"Database path: {db_path}")
         database.init_db()
-        log("Database initialized (tables created).")
+        log("Database initialized.")
         
         # Step 2: Seeding
-        say("Verifying vocabulary data...")
-        from seed_data import seed_data
-        log("Seed data module imported.")
+        say("Verifying data...")
         seed_data()
-        log("Seed data verification/insertion complete.")
+        log("Seed data complete.")
         
-        # Step 3: Views
-        say("Loading application views...")
-        from views.landing_view import LandingView
-        from views.dashboard_view import DashboardView
-        from views.learning_view import LearningView
-        from views.words_view import WordsView
-        from views.difficult_words_view import DifficultWordsView
-        log("All views imported successfully.")
-        
-        say("Preparing to launch UI...")
-        import time
+        # Step 3: Launch
+        say("Launching UI...")
         time.sleep(0.5)
         
         # Handoff to main App UI
@@ -114,24 +112,19 @@ def main(page: ft.Page):
     
     # Final step: Choose starting page
     try:
-        from database import get_last_user
         last_user = get_last_user()
-        
         if last_user:
-            log(f"Auto-login detected for: {last_user}")
-            from session_utils import set_session
+            log(f"Auto-login: {last_user}")
             set_session(page, "username", last_user)
             page.go("/dashboard")
-            log("Dispatched to dashboard.")
         else:
-            log("No auto-login found. Dispatching to landing.")
+            log("No auto-login. Landing.")
             page.views.clear()
             page.views.append(LandingView(page))
             page.update()
-            log("Initial view (Landing) loaded.")
         
     except Exception as e:
-        log(f"Auto-login or View load failed: {e}")
+        log(f"UI load failed: {e}")
         page.views.clear()
         page.add(ft.Text(f"Failed to load UI: {e}", color="red"))
         page.update()
